@@ -1,0 +1,46 @@
+#!/sbin/sh
+
+export MODEL=$(getprop ro.product.model)
+export FS=ext4
+export DEV=/dev/block/bootdevice/by-name
+export BAK=/sdcard/backup_settings
+export DB=/data/data/com.android.providers.settings/databases
+export SQLITE=/system/xbin/sqlite3
+
+echo -n -e 'ui_print  \n' > /proc/self/fd/$2
+echo -n -e 'ui_print Skip Setup for ZTF32\n' > /proc/self/fd/$2
+echo -n -e 'ui_print by SumaPhone\n' > /proc/self/fd/$2
+echo -n -e 'ui_print  \n' > /proc/self/fd/$2
+
+if [[ $MODEL == 'ZTF32' ]]; then
+    echo -n -e 'ui_print Mounting partitions...\n' > /proc/self/fd/$2;
+    umount /system
+    umount /data
+    mount -t $FS $DEV/system /system
+    mount -t $FS $DEV/userdata /data
+    echo -n -e 'ui_print Backup databases...\n' > /proc/self/fd/$2;
+    mkdir $BAK
+    ls -l $DB/settings.db > $BAK/settings-$(date '+%Y-%m-%d_%H-%M-%S').db.perm
+    cp $DB/settings.db $BAK/settings-$(date '+%Y-%m-%d_%H-%M-%S').db
+    ls -l $DB/settings.db-journal > $BAK/settings-$(date '+%Y-%m-%d_%H-%M-%S').db-journal.perm
+    cp $DB/settings.db-journal $BAK/settings-$(date '+%Y-%m-%d_%H-%M-%S').db-journal
+    chmod -R 666 $BAK
+    chown -R media_rw.media_rw $BAK
+    chmod 775 $BAK
+    echo -n -e 'ui_print Modding databases...\n' > /proc/self/fd/$2;
+    $SQLITE $DB/settings.db "UPDATE global SET value = '1' WHERE name = 'device_provisioned'"
+    $SQLITE $DB/settings.db "UPDATE secure SET value = '1' WHERE name = 'user_setup_complete'"
+    $SQLITE $DB/settings.db "UPDATE secure SET value = '1' WHERE name = 'install_non_market_apps'"
+    echo -n -e 'ui_print Disable setup app...\n' > /proc/self/fd/$2;
+    mv /system/priv-app/KDDIKidsSetupWizard/KDDIKidsSetupWizard.apk /system/priv-app/KDDIKidsSetupWizard/KDDIKidsSetupWizard.apk.mv
+    umount /system
+    echo -n -e 'ui_print  \n' > /proc/self/fd/$2;
+    echo -n -e 'ui_print Parental Password is 0000\n' > /proc/self/fd/$2;
+    echo -n -e 'ui_print  \n' > /proc/self/fd/$2;
+    echo -n -e 'ui_print Done!\n' > /proc/self/fd/$2;
+    echo -n -e 'ui_print  \n' > /proc/self/fd/$2;
+    exit 0;
+else
+    echo -n -e 'ui_print This package made for ZTF32.\n' > /proc/self/fd/$2;
+    exit 1;
+fi
